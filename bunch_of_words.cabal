@@ -1,0 +1,15 @@
+Name: Bunch-Of-Words
+Version: 0.0.1
+Cabal-Version: >= 1.2
+Author:	Koh Wei Jie
+Homepage: http://kohweijie.wordpress.com
+Category: Graphics
+Synopsis:"A tag-cloud generator"
+Build-Type: Simple
+
+Executable bunch_of_words
+  Main-Is: Main.hs
+  Hs-Source-Dirs: src
+  Build-Depends: base >= 3,
+                  gtk,
+                  cairo
