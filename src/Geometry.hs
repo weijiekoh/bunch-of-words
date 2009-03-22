@@ -22,6 +22,14 @@ topY = y . coord
 bottomY :: RectPos -> Double
 bottomY rp = topY rp + height (rect rp)
 
+-- The X-coordinate of the left edge of a rectangle
+leftX :: RectPos -> Double
+leftX = x . coord
+
+-- The X-coordinate of the right edge of a rectangle
+rightX :: RectPos -> Double
+rightX rp = leftX rp + width (rect rp)
+
 -- Compare two RectPos types and return the one with the higher (smaller) topY
 compareTopY :: RectPos -> RectPos -> Ordering
 compareTopY a b = compare (topY a) (topY b)
