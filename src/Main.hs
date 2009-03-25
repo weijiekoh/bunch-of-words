@@ -46,17 +46,19 @@ main = do
                 {-RectPos (Rect 100 50) (Point 200 0)]-}
     {-print $ findHorizGaps 0 800 1 a-}
 
+    displayWindow $ findVertSpaces 800 600 [RectPos (Rect 100 100) (Point 250 50)]
+
     displayWindow $ findVertSpaces 800 600 [RectPos (Rect 100 100) (Point 250 50),
                                             RectPos (Rect 100 100) (Point 250 200),
-                                            RectPos (Rect 100 100) (Point 250 350)] 9
+                                            RectPos (Rect 100 100) (Point 250 350)] 
 
     displayWindow $ findVertSpaces 800 600 [RectPos (Rect 100 100) (Point 250 50),
                                             RectPos (Rect 100 100) (Point 350 250),
-                                            RectPos (Rect 100 100) (Point 450 350)] 9
+                                            RectPos (Rect 100 100) (Point 450 350)] 
 
     displayWindow $ findVertSpaces 800 600 [RectPos (Rect 100 100) (Point 250 50),
                                             RectPos (Rect 100 100) (Point 400 150),
-                                            RectPos (Rect 100 100) (Point 550 350)] 9
+                                            RectPos (Rect 100 100) (Point 550 350)]
 
     {-let b = [-}
                 {-RectPos (Rect 800 20) (Point 0 0),-}

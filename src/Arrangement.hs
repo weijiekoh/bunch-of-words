@@ -13,15 +13,14 @@ import Data.Maybe
         {-centralised = centralise w h x-}
 
 -- Do a top-to-bottom scan for empty spaces and represent them as RectPoses
-findVertSpaces :: Double -> Double -> [RectPos] -> Integer -> [RectPos]
-findVertSpaces w h [] _ = [RectPos (Rect w h) (Point 0 0)] -- empty plane
-findVertSpaces w h rectPoses c = findVertSpaces' w h rectPoses [] 0 c
+findVertSpaces :: Double -> Double -> [RectPos] -> [RectPos]
+findVertSpaces w h [] = [RectPos (Rect w h) (Point 0 0)] -- empty plane
+findVertSpaces w h rectPoses = findVertSpaces' w h rectPoses [] 0
 
-findVertSpaces' :: Double -> Double -> [RectPos] -> [RectPos] -> Double -> Integer -> [RectPos]
-findVertSpaces' w h rectPoses spaces yPtr c
-    | c == 0 = []
+findVertSpaces' :: Double -> Double -> [RectPos] -> [RectPos] -> Double -> [RectPos]
+findVertSpaces' w h rectPoses spaces yPtr 
     | h == yPtr = []
-    | otherwise =  foundSpaces ++ findVertSpaces' w h rectPoses (foundSpaces ++ spaces) nextEdge (c-1)
+    | otherwise =  foundSpaces ++ findVertSpaces' w h rectPoses (foundSpaces ++ spaces) nextEdge
         where 
             foundSpaces = filter hasArea (spacesFromGaps $ yPtr+1)
             spacesFromGaps yPtr = map (findSpace yPtr h) (findHorizGaps 0 w yPtr combined)
