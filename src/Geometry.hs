@@ -14,6 +14,9 @@ compareRect x y = compare (area x) (area y)
 area :: Rect -> Double
 area x = (width x) * (height x)
 
+hasArea :: RectPos -> Bool
+hasArea r = (area (rect r)) > 0
+
 -- The Y-coordinate of the top edge of a rectangle
 topY :: RectPos -> Double
 topY = y . coord

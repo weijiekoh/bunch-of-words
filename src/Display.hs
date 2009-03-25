@@ -43,15 +43,13 @@ oneRect (r:rs) = do
     let xPos = x (coord r)
     let yPos = y (coord r)
 
-    -- create the border
-    {-setLineWidth 3-}
-    {-setSourceRGB 0.3 0.3 0.3-}
+    setSourceRGBA 0.3 0.3 1 0.5
+    setLineWidth 1
     rectangle xPos yPos w h
     stroke
 
-    -- fill it
+    setSourceRGBA 0.3 0.3 1 0.5
     rectangle xPos yPos w h
-    setSourceRGB 0.5 0.5  1
     fill
 
     oneRect rs
@@ -59,7 +57,7 @@ oneRect (r:rs) = do
 drawRectangles :: [RectPos] -> Render ()
 drawRectangles rects = do
     setSourceRGB 0.3 0.3 0.3
-    setLineWidth 3
+    setLineWidth 0
     rectangle 1 1 (fromIntegral wWidth) (fromIntegral wHeight)
     stroke
 
