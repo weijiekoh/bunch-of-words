@@ -5,31 +5,116 @@ import Data.List
 import Data.Maybe
 
 -- arrange a list of Rects
-{-arrange :: Double -> Double -> [Rect] -> [RectPos]-}
-{-arrange _ _ [] = []-}
-{-[>arrange w h (x:xs) = centralise w h x ++ arrangeRest w h xs<]-}
-{-arrange w h (x:xs) = centralised ++ findVertSpaces w h centralised-}
-    {-where-}
-        {-centralised = centralise w h x-}
+arrange :: Double -> Double -> [Rect] -> [RectPos]
+arrange _ _ [] = []
+arrange w h rects = existing ++ rest
+    where
+        {-existing = centralise w h (head sorted)-}
+        existing = [RectPos (head sorted) (Point 0 0)]
+        rest = arrangeRest w h existing (tail sorted)
+        {-sorted = sortBy (\x y -> compare (area y) (area x)) rects-}
+        sorted = sortBy compareRect rects
+
+-- Carry out the arrangement assuming that one or more RectPoses have been 
+-- placed (in the existing list)
+{-arrangeRest :: Double -> Double -> [RectPos] -> [Rect] -> [RectPos]-}
+arrangeRest _ _ existing [] = existing
+arrangeRest w h existing (x:xs)
+    | isNothing bestFit = arrange w h (scale spaces existing (x:xs))
+    {-| isNothing bestFit = []-}
+    | otherwise = [lumped] ++ arrangeRest w h (existing ++ [lumped]) xs
+        where
+            lumped = lumpToCentre w h (fromJust bestFit) x
+            bestFit = findBestFit x (filter (\ y -> x `fitsIn` (rect y)) spaces)
+            spaces = findVertSpaces w h existing ++ findHorizSpaces w h existing
+
+lumpToCentre :: Double -> Double -> RectPos -> Rect -> RectPos
+lumpToCentre _ _ pos rect = RectPos (rect) (coord pos)
+
+-- Given some existing RectPoses and some unplaced Rects, none of which can 
+-- fit into any RectPos, return a list of Rects that will definitely fit
+scale :: [RectPos] -> [RectPos] -> [Rect] -> [Rect]
+scale _ _ [] = []
+scale _ [] unscaled = unscaled
+scale spaces existing unscaled = scale' spaces existing (sortBy compareRect unscaled)
+
+scale' :: [RectPos] -> [RectPos] -> [Rect] -> [Rect]
+scale' spaces existing (x:xs) = map scaleRect ((map rect existing) ++ x:xs)
+    where 
+        bestFitting = fromJust $ findBestFit x spaces
+        {-bestFitting = maximumBy compareFitScore (map rect spaces)-}
+        {-compareFitScore y = compare (fitScore y) (fitScore x)-}
+        {-acceptableUnscaleds = filter (\ r -> (area r) -}
+                                            {-/ (area x) -}
+                                            {->= 0.8) unscaled-}
+        -- now, based on the dimensions of x and bestFitting, compose scaleRect
+        -- scaleRect scales a given rectangle to dimensions determined by how x
+        -- fits into bestFitting
+        scaleRect r = Rect (width r * scaleRatio) (height r * scaleRatio)
+            where
+                scaleRatio
+                    | (width x) - (width $ rect bestFitting) >= (height x) - (height $ rect bestFitting)
+                        = (height $ rect bestFitting) / (height x)
+                    | otherwise = (width $ rect bestFitting) / (width x)
+
+-- place a Rect in the middle, given the width and height
+centralise :: Double -> Double -> Rect -> [RectPos]
+centralise w h x = [RectPos x (Point (w - (w/2) - (width x)/2) 
+                                     (h - (h/2) - (height x)/2)
+                              )]
+
+-- Check if a Rect a fits in another Rect b
+fitsIn :: Rect -> Rect -> Bool
+a `fitsIn` b = not $ (width a) > (width b) || (height a) > (height b)
+
+-- Locate a Rect that fits a given Rect the best
+findBestFit :: Rect -> [RectPos] -> Maybe RectPos
+findBestFit _ [] = Nothing
+findBestFit r rects = Just $ maximumBy compareFitScore rects
+    where
+        compareFitScore x y = compare (fitScore (rect y) r) (fitScore (rect x) r)
+
+-- The larger the fitScore, the "better" one Rect a fits into another, b
+fitScore :: Rect -> Rect -> Double
+fitScore a b -- b is larger than / equal to a
+    | widthA == widthB && heightA == heightB = 3
+    | widthA == widthB = 2
+    | heightA == heightB = 2
+    -- 
+    | otherwise = ((widthB - widthA) / (heightB - heightA)) / 
+                    ((area b) / (area a))
+        where
+            heightA = height a
+            heightB = height b
+            widthA = width a
+            widthB = width b
+----------------------------
+
+-- General function for determining the empty spaces between RectPoses in a list
+findSpaces _ _ _ w edge [] = [RectPos (Rect w edge) (Point 0 0)] -- empty plane
+findSpaces findGapsF findSpaceF findEdgeF w edge rectPoses = findSpaces' findGapsF findSpaceF findEdgeF w edge rectPoses [] 0
+
+findSpaces' findGapsF findSpaceF findEdgeF w edge rectPoses spaces ptr 
+    | edge == ptr = []
+    | otherwise =  foundSpaces ++ findSpaces' findGapsF findSpaceF findEdgeF w edge rectPoses (foundSpaces ++ spaces) nextEdge
+        where 
+            foundSpaces = filter hasArea (spacesFromGaps $ ptr)
+            spacesFromGaps ptr = map (findSpace ptr edge) (findGapsF 0 w (ptr+1) combined)
+
+            findSpace :: Double -> Double -> (Double, Double) -> RectPos -- wrapper for findVertSpace
+            findSpace ptr bottom (a, b) = findSpaceF a b ptr bottom combined
+
+            combined = spaces ++ rectPoses
+            nextEdge = findEdgeF ptr edge rectPoses
 
 -- Do a top-to-bottom scan for empty spaces and represent them as RectPoses
 findVertSpaces :: Double -> Double -> [RectPos] -> [RectPos]
-findVertSpaces w h [] = [RectPos (Rect w h) (Point 0 0)] -- empty plane
-findVertSpaces w h rectPoses = findVertSpaces' w h rectPoses [] 0
+findVertSpaces = findSpaces findHorizGaps findVertSpace findNextTopOrBottomEdge
 
-findVertSpaces' :: Double -> Double -> [RectPos] -> [RectPos] -> Double -> [RectPos]
-findVertSpaces' w h rectPoses spaces yPtr 
-    | h == yPtr = []
-    | otherwise =  foundSpaces ++ findVertSpaces' w h rectPoses (foundSpaces ++ spaces) nextEdge
-        where 
-            foundSpaces = filter hasArea (spacesFromGaps $ yPtr+1)
-            spacesFromGaps yPtr = map (findSpace yPtr h) (findHorizGaps 0 w yPtr combined)
+-- Do a left-to-right scan for empty spaces and represent them as RectPoses
+findHorizSpaces :: Double -> Double -> [RectPos] -> [RectPos]
+findHorizSpaces = findSpaces findVertGaps findHorizSpace findNextLeftOrRightEdge
 
-            findSpace :: Double -> Double -> (Double, Double) -> RectPos -- wrapper for findVertSpace
-            findSpace yPtr bottom (a, b) = findVertSpace a b yPtr bottom combined
-
-            combined = spaces ++ rectPoses
-            nextEdge = findNextTopOrBottomEdge (yPtr+1) h rectPoses
 
 -- Find the vertical space of width (right - left) that is empty from yPos down
 findVertSpace :: Double -> Double -> Double -> Double -> [RectPos] -> RectPos
@@ -124,7 +209,6 @@ findGaps fil edge1 edge2
             sides (x:xs) = [edge1 x, edge2 x] ++ sides xs
 
 -- Given a Y-position and a list of RectPoses, return RectPoses which overlap the Y-position
--- TODO - use a HOF
 filterY :: Double -> [RectPos] -> [RectPos]
 filterY ptr = filter (acceptEdge topY bottomY ptr)
 
@@ -156,19 +240,3 @@ findNextEdge side1 side2 ptr bottom rects
         found = find (> ptr) sides
         r = head sides
         sides = sort $ listSides side1 side2 rects
-    {-| ptr == bottom = bottom-}
-    {-| (s1 == ptr || s2 == ptr) = findNextEdge side1 side2 (ptr+1) bottom (x:xs)-}
-    {-| s1 > ptr = s1-}
-    {-| s1 < ptr && s2 > ptr = s2-}
-    {-| s2 < ptr = findNextEdge side1 side2 ptr bottom xs-}
-        {-where-}
-            {-s1 = side1 x-}
-            {-s2 = side2 x-}
-
--- place a Rect in the middle, given the width and height
-centralise :: Double -> Double -> Rect -> [RectPos]
-centralise w h x = [RectPos x (Point (w - (w/2) - (width x)/2) (h - (h/2) - (height x)/2))]
-
-{-arrangeRest _ _ [] = []-}
-{-arrangeRest w h (x:xs) = [RectPos x (Point (width x) (height x))] ++ arrangeRest w h xs-}
-arrangeRest _ _ _ = []
